@@ -43,6 +43,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
   const handleTest = async () => {
     const values = await form.validateFields()
     setTesting(true)
+    addLog('info', `測試 API 連通性 / Testing API connection: ${values.apiBaseUrl}`)
     const devLogsTest: string[] = []
 
     try {
@@ -100,6 +101,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
     const values = await form.validateFields()
     setCheckingQuota(true)
     setQuotaResult(null)
+    addLog('info', `查詢 API Key 額度 / Checking API key quota: ${values.apiBaseUrl}`)
     const devLogsQuota: string[] = []
 
     try {
@@ -120,6 +122,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
   const handleDetectModels = async () => {
     const values = await form.validateFields(['apiBaseUrl', 'apiKey'])
     setDetectingModels(true)
+    addLog('info', `檢測 API 支援模型 / Detecting supported models: ${values.apiBaseUrl}`)
     const devLogsDetect: string[] = []
 
     try {
@@ -151,6 +154,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
     )
     setDetectingTextModels(true)
     const mergedSettings = { ...settings, ...form.getFieldsValue(), ...values }
+    addLog('info', `檢測文字模型 / Detecting text models: ${textApiMode === 'custom' ? mergedSettings.textApiBaseUrl : mergedSettings.apiBaseUrl}`)
     const devLogsText: string[] = []
 
     try {

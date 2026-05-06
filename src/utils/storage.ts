@@ -72,5 +72,11 @@ export const getLogs = (): LogEntry[] => {
 }
 
 export const saveLogs = (logs: LogEntry[]): void => {
-  localStorage.setItem(LOGS_KEY, JSON.stringify(logs.slice(0, MAX_LOGS)))
+  // Strip detail (which may contain large base64 data) before persisting to localStorage
+  const stripped = logs.slice(0, MAX_LOGS).map(({ detail: _detail, ...rest }) => rest)
+  try {
+    localStorage.setItem(LOGS_KEY, JSON.stringify(stripped))
+  } catch {
+    // Quota exceeded — skip persistence silently
+  }
 }

@@ -114,6 +114,7 @@ export default function GeneratePage() {
         .map((f) => f.originFileObj)
         .filter((f): f is NonNullable<typeof f> => Boolean(f))
       const endpoint = references.length > 0 ? '/v1/images/edits' : '/v1/images/generations'
+      addLog('info', `開始生成 / Start generation: ${endpoint}, size=${getImageSize(values)}, quality=${values.quality}, n=${values.n}`)
       const onDevLog = (detail: string) => devLogs.push(detail)
       const result = references.length > 0
         ? await editImages(settings, values, references, undefined, onDevLog)
@@ -254,6 +255,7 @@ export default function GeneratePage() {
         '根據參考圖片進行修改，保持整體風格與主要內容一致。',
         `修改要求：${revision}`,
       ].join('\n\n')
+      addLog('info', `開始根據結果修改 / Start result revision: references=${imageBlobs.length}`)
       const onDevLog = (detail: string) => devLogs.push(detail)
       const result = await editImages(settings, { ...values, prompt }, imageBlobs, undefined, onDevLog)
       setResults(result.images)

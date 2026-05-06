@@ -127,6 +127,7 @@ export default function EditPage() {
         .filter((f): f is NonNullable<typeof f> => Boolean(f))
 
       const rawMask = maskFile?.originFileObj ?? undefined
+      addLog('info', `開始編輯 / Start edit: /v1/images/edits, references=${rawImages.length}, mask=${rawMask ? 'yes' : 'no'}, size=${getImageSize(values)}, quality=${values.quality}`)
       const onDevLog = (detail: string) => devLogs.push(detail)
 
       const result = await editImages(settings, values, rawImages, rawMask, onDevLog)
@@ -266,6 +267,7 @@ export default function EditPage() {
         '根據參考圖片進行修改，保持整體風格與主要內容一致。',
         `修改要求：${revision}`,
       ].join('\n\n')
+      addLog('info', `開始根據結果修改 / Start result revision: references=${imageBlobs.length}`)
       const onDevLog = (detail: string) => devLogs.push(detail)
       const result = await editImages(settings, { ...values, prompt }, imageBlobs, undefined, onDevLog)
       setResults(result.images)
