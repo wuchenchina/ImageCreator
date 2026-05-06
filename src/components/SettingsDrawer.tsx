@@ -43,11 +43,13 @@ export default function SettingsDrawer({ open, onClose }: Props) {
   const handleTest = async () => {
     const values = await form.validateFields()
     setTesting(true)
+    const allLogs1: string[] = []
     const responseLogs1: string[] = []
 
     try {
       let startLogged = false
       const onDevLog = (detail: string) => {
+        allLogs1.push(detail)
         if (!startLogged && detail.startsWith('→ REQUEST')) {
           startLogged = true
           addLog('info', `測試 API 連通性 / Testing API connection: ${values.apiBaseUrl}`, detail)
@@ -62,7 +64,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
     } catch (e) {
       const error = e instanceof Error ? e.message : 'API 連線失敗 / API connection failed'
       message.error(error)
-      addLog('error', error, responseLogs1.join('\n\n---\n\n') || undefined)
+      addLog('error', error, allLogs1.join('\n\n---\n\n') || undefined)
     } finally {
       setTesting(false)
     }
@@ -109,11 +111,13 @@ export default function SettingsDrawer({ open, onClose }: Props) {
     const values = await form.validateFields()
     setCheckingQuota(true)
     setQuotaResult(null)
+    const allLogs2: string[] = []
     const responseLogs2: string[] = []
 
     try {
       let startLogged = false
       const onDevLog = (detail: string) => {
+        allLogs2.push(detail)
         if (!startLogged && detail.startsWith('→ REQUEST')) {
           startLogged = true
           addLog('info', `查詢 API Key 額度 / Checking API key quota: ${values.apiBaseUrl}`, detail)
@@ -129,7 +133,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
     } catch (e) {
       const error = e instanceof Error ? e.message : '額度查詢失敗 / Quota query failed'
       message.error('額度查詢失敗 / Quota query failed')
-      addLog('error', error, responseLogs2.join('\n\n---\n\n') || undefined)
+      addLog('error', error, allLogs2.join('\n\n---\n\n') || undefined)
     } finally {
       setCheckingQuota(false)
     }
@@ -138,11 +142,13 @@ export default function SettingsDrawer({ open, onClose }: Props) {
   const handleDetectModels = async () => {
     const values = await form.validateFields(['apiBaseUrl', 'apiKey'])
     setDetectingModels(true)
+    const allLogs3: string[] = []
     const responseLogs3: string[] = []
 
     try {
       let startLogged = false
       const onDevLog = (detail: string) => {
+        allLogs3.push(detail)
         if (!startLogged && detail.startsWith('→ REQUEST')) {
           startLogged = true
           addLog('info', `檢測 API 支援模型 / Detecting supported models: ${values.apiBaseUrl}`, detail)
@@ -164,7 +170,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
     } catch (e) {
       const error = e instanceof Error ? e.message : '模型檢測失敗 / Model detection failed'
       message.error(error)
-      addLog('error', error, responseLogs3.join('\n\n---\n\n') || undefined)
+      addLog('error', error, allLogs3.join('\n\n---\n\n') || undefined)
     } finally {
       setDetectingModels(false)
     }
@@ -178,12 +184,14 @@ export default function SettingsDrawer({ open, onClose }: Props) {
     )
     setDetectingTextModels(true)
     const mergedSettings = { ...settings, ...form.getFieldsValue(), ...values }
+    const allLogs4: string[] = []
     const responseLogs4: string[] = []
     const textApiLabel = textApiMode === 'custom' ? mergedSettings.textApiBaseUrl : mergedSettings.apiBaseUrl
 
     try {
       let startLogged = false
       const onDevLog = (detail: string) => {
+        allLogs4.push(detail)
         if (!startLogged && detail.startsWith('→ REQUEST')) {
           startLogged = true
           addLog('info', `檢測文字模型 / Detecting text models: ${textApiLabel}`, detail)
@@ -212,7 +220,7 @@ export default function SettingsDrawer({ open, onClose }: Props) {
     } catch (e) {
       const error = e instanceof Error ? e.message : '文字模型檢測失敗 / Text model detection failed'
       message.error(error)
-      addLog('error', error, responseLogs4.join('\n\n---\n\n') || undefined)
+      addLog('error', error, allLogs4.join('\n\n---\n\n') || undefined)
     } finally {
       setDetectingTextModels(false)
     }

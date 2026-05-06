@@ -107,6 +107,7 @@ export default function GeneratePage() {
     setRevisedPrompts([])
     setLastUsage(undefined)
     const startedAt = Date.now()
+    const allDevLogs: string[] = []
     const responseLogs: string[] = []
 
     try {
@@ -117,6 +118,7 @@ export default function GeneratePage() {
       const startMsg = `開始生成 / Start generation: ${endpoint}, size=${getImageSize(values)}, quality=${values.quality}, n=${values.n}`
       let startLogged = false
       const onDevLog = (detail: string) => {
+        allDevLogs.push(detail)
         if (!startLogged && detail.startsWith('→ REQUEST')) {
           startLogged = true
           addLog('info', startMsg, detail)
@@ -155,7 +157,7 @@ export default function GeneratePage() {
       const error = e instanceof Error ? e.message : '生成失敗，請重試 / Generation failed, please retry'
       setError(error)
       const duration = Math.round((Date.now() - startedAt) / 1000)
-      addLog('error', `生成失敗 / Generation failed: ${error}, ${duration}s`, responseLogs.join('\n\n---\n\n') || undefined)
+      addLog('error', `生成失敗 / Generation failed: ${error}, ${duration}s`, allDevLogs.join('\n\n---\n\n') || undefined)
     } finally {
       setLoading(false)
     }
@@ -169,11 +171,13 @@ export default function GeneratePage() {
     }
 
     setOptimizingPrompt(true)
+    const allLogs1: string[] = []
     const responseLogs1: string[] = []
 
     try {
       let startLogged = false
       const onDevLog = (detail: string) => {
+        allLogs1.push(detail)
         if (!startLogged && detail.startsWith('→ REQUEST')) {
           startLogged = true
           addLog('info', 'Prompt 優化中 / Optimizing prompt', detail)
@@ -189,7 +193,7 @@ export default function GeneratePage() {
     } catch (e) {
       const error = e instanceof Error ? e.message : 'Prompt 優化失敗'
       message.error(error)
-      addLog('error', error, responseLogs1.join('\n\n---\n\n') || undefined)
+      addLog('error', error, allLogs1.join('\n\n---\n\n') || undefined)
     } finally {
       setOptimizingPrompt(false)
     }
@@ -203,11 +207,13 @@ export default function GeneratePage() {
     }
 
     setOptimizingNegativePrompt(true)
+    const allLogs2: string[] = []
     const responseLogs2: string[] = []
 
     try {
       let startLogged = false
       const onDevLog = (detail: string) => {
+        allLogs2.push(detail)
         if (!startLogged && detail.startsWith('→ REQUEST')) {
           startLogged = true
           addLog('info', '反向 Prompt 優化中 / Optimizing negative prompt', detail)
@@ -223,7 +229,7 @@ export default function GeneratePage() {
     } catch (e) {
       const error = e instanceof Error ? e.message : '反向 Prompt 優化失敗'
       message.error(error)
-      addLog('error', error, responseLogs2.join('\n\n---\n\n') || undefined)
+      addLog('error', error, allLogs2.join('\n\n---\n\n') || undefined)
     } finally {
       setOptimizingNegativePrompt(false)
     }
@@ -237,11 +243,13 @@ export default function GeneratePage() {
     }
 
     setOptimizingPromptPair(true)
+    const allLogs3: string[] = []
     const responseLogs3: string[] = []
 
     try {
       let startLogged = false
       const onDevLog = (detail: string) => {
+        allLogs3.push(detail)
         if (!startLogged && detail.startsWith('→ REQUEST')) {
           startLogged = true
           addLog('info', '提示詞同時優化中 / Optimizing prompt pair', detail)
@@ -260,7 +268,7 @@ export default function GeneratePage() {
     } catch (e) {
       const error = e instanceof Error ? e.message : '提示詞優化失敗'
       message.error(error)
-      addLog('error', error, responseLogs3.join('\n\n---\n\n') || undefined)
+      addLog('error', error, allLogs3.join('\n\n---\n\n') || undefined)
     } finally {
       setOptimizingPromptPair(false)
     }
@@ -277,6 +285,7 @@ export default function GeneratePage() {
     setRevising(true)
     setError(null)
     const startedAt = Date.now()
+    const allLogs4: string[] = []
     const responseLogs4: string[] = []
 
     try {
@@ -290,6 +299,7 @@ export default function GeneratePage() {
       const startMsg = `開始根據結果修改 / Start result revision: references=${imageBlobs.length}`
       let startLogged = false
       const onDevLog = (detail: string) => {
+        allLogs4.push(detail)
         if (!startLogged && detail.startsWith('→ REQUEST')) {
           startLogged = true
           addLog('info', startMsg, detail)
@@ -311,7 +321,7 @@ export default function GeneratePage() {
     } catch (e) {
       const error = e instanceof Error ? e.message : '修改失敗，請重試 / Revision failed, please retry'
       setError(error)
-      addLog('error', `修改失敗 / Revision failed: ${error}`, responseLogs4.join('\n\n---\n\n') || undefined)
+      addLog('error', `修改失敗 / Revision failed: ${error}`, allLogs4.join('\n\n---\n\n') || undefined)
     } finally {
       setRevising(false)
     }
