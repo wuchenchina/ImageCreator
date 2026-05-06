@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Drawer, Form, Input, Button, Space, Typography, Divider, Alert, message, List, Card, Flex, Grid, Select, Radio } from 'antd'
-import { CopyOutlined, ImportOutlined, LinkOutlined, WalletOutlined, SafetyOutlined } from '@ant-design/icons'
+import { Drawer, Form, Input, Button, Space, Typography, Divider, Alert, message, List, Card, Flex, Grid, Select, Radio, Switch } from 'antd'
+import { CopyOutlined, ImportOutlined, LinkOutlined, WalletOutlined, SafetyOutlined, ThunderboltOutlined } from '@ant-design/icons'
 
 const { useBreakpoint } = Grid
 import { useAppContext } from '../context/AppContext'
@@ -379,6 +379,22 @@ export default function SettingsDrawer({ open, onClose }: Props) {
           <Button loading={detectingTextModels} onClick={handleDetectTextModels} block>
             檢測文字模型 / Detect Text Models
           </Button>
+
+          <Divider style={{ margin: '20px 0' }} />
+
+          <Form.Item
+            label={
+              <Space>
+                <ThunderboltOutlined />
+                <span>強制串流輸出 / Force Streaming Output</span>
+              </Space>
+            }
+            name="forceStreaming"
+            valuePropName="checked"
+            help="當第三方 API 不穩定時啟用；將 Prompt 優化請求改為 SSE 串流模式，避免連線中斷導致失敗"
+          >
+            <Switch checkedChildren="開啟" unCheckedChildren="關閉" />
+          </Form.Item>
         </Card>
 
         {quotaResult && (

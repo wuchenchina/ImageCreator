@@ -20,6 +20,7 @@ export const getSettings = (): Settings => {
         textApiKey: parsed.textApiKey ?? '',
         textModels: parsed.textModels ?? ['gpt-4o-mini'],
         promptOptimizerModel: parsed.promptOptimizerModel ?? parsed.textModels?.[0] ?? 'gpt-4o-mini',
+        forceStreaming: parsed.forceStreaming ?? false,
       }
     }
   } catch { /* ignore */ }
@@ -32,6 +33,7 @@ export const getSettings = (): Settings => {
     textApiKey: '',
     textModels: ['gpt-4o-mini'],
     promptOptimizerModel: 'gpt-4o-mini',
+    forceStreaming: false,
   }
 }
 

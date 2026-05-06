@@ -7,6 +7,7 @@ export interface Settings {
   textApiKey?: string
   textModels?: string[]
   promptOptimizerModel?: string
+  forceStreaming?: boolean
 }
 
 export type ImageSize =

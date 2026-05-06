@@ -39,6 +39,13 @@ interface ChatCompletionResponse {
   }>
 }
 
+interface ChatCompletionStreamChunk {
+  choices?: Array<{
+    delta?: { content?: string }
+    finish_reason?: string | null
+  }>
+}
+
 
 export interface QuotaResult {
   source: string
@@ -76,6 +83,68 @@ const logFetchResponse = async (onDevLog: DevLogFn | undefined, res: Response, l
     const text = await res.clone().text().catch(() => '')
     onDevLog(`← RESPONSE ${label}${label ? ' ' : ''}${res.status} ${res.statusText}\n\n${text}`)
   }
+}
+
+const chatCompletion = async (
+  url: string,
+  authHeaders: Record<string, string>,
+  body: Record<string, unknown>,
+  forceStreaming: boolean,
+  onDevLog?: DevLogFn,
+): Promise<string> => {
+  const headers = { ...authHeaders, 'Content-Type': 'application/json' }
+
+  if (forceStreaming) {
+    const streamBody = { ...body, stream: true }
+    onDevLog?.(`→ REQUEST\nPOST ${url}\nAuthorization: Bearer [redacted]\nContent-Type: application/json\n\n${JSON.stringify(streamBody, null, 2)}`)
+
+    const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(streamBody) })
+
+    if (!res.ok) {
+      const errText = await parseError(res)
+      onDevLog?.(`← RESPONSE ${res.status} ${res.statusText}\n\n${errText}`)
+      throw new Error(errText)
+    }
+
+    const reader = res.body?.getReader()
+    if (!reader) throw new Error('No response body reader available')
+
+    const decoder = new TextDecoder()
+    let content = ''
+    let buffer = ''
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+        for (const line of lines) {
+          const trimmed = line.trim()
+          if (!trimmed.startsWith('data:')) continue
+          const data = trimmed.slice(5).trim()
+          if (data === '[DONE]') continue
+          try {
+            const chunk = JSON.parse(data) as ChatCompletionStreamChunk
+            content += chunk.choices?.[0]?.delta?.content ?? ''
+          } catch { /* ignore malformed SSE chunks */ }
+        }
+      }
+    } finally {
+      reader.releaseLock()
+    }
+
+    onDevLog?.(`← STREAMING RESPONSE 200 OK\n\n${content}`)
+    return content.trim()
+  }
+
+  onDevLog?.(`→ REQUEST\nPOST ${url}\nAuthorization: Bearer [redacted]\nContent-Type: application/json\n\n${JSON.stringify(body, null, 2)}`)
+  const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
+  await logFetchResponse(onDevLog, res)
+  if (!res.ok) throw new Error(await parseError(res))
+  const data = (await res.json()) as ChatCompletionResponse
+  return data.choices?.[0]?.message?.content?.trim() ?? ''
 }
 
 export const generateImages = async (
@@ -235,7 +304,7 @@ export const optimizePrompt = async (
 ): Promise<string> => {
   const model = settings.promptOptimizerModel || settings.textModels?.[0] || 'gpt-4o-mini'
   const url = `${getTextBaseUrl(settings)}/v1/chat/completions`
-  const body = {
+  const body: Record<string, unknown> = {
     model,
     temperature: 0.4,
     messages: [
@@ -258,21 +327,13 @@ export const optimizePrompt = async (
     ],
   }
 
-  onDevLog?.(`→ REQUEST\nPOST ${url}\nAuthorization: Bearer [redacted]\nContent-Type: application/json\n\n${JSON.stringify(body, null, 2)}`)
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getTextApiKey(settings)}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-  await logFetchResponse(onDevLog, res)
-
-  if (!res.ok) throw new Error(await parseError(res))
-
-  const data = (await res.json()) as ChatCompletionResponse
-  const content = data.choices?.[0]?.message?.content?.trim()
+  const content = await chatCompletion(
+    url,
+    { Authorization: `Bearer ${getTextApiKey(settings)}` },
+    body,
+    settings.forceStreaming ?? false,
+    onDevLog,
+  )
   if (!content) throw new Error('提示詞優化失敗：模型沒有返回內容')
   return content
 }
@@ -285,7 +346,7 @@ export const optimizeNegativePrompt = async (
 ): Promise<string> => {
   const model = settings.promptOptimizerModel || settings.textModels?.[0] || 'gpt-4o-mini'
   const url = `${getTextBaseUrl(settings)}/v1/chat/completions`
-  const body = {
+  const body: Record<string, unknown> = {
     model,
     temperature: 0.3,
     messages: [
@@ -308,21 +369,13 @@ export const optimizeNegativePrompt = async (
     ],
   }
 
-  onDevLog?.(`→ REQUEST\nPOST ${url}\nAuthorization: Bearer [redacted]\nContent-Type: application/json\n\n${JSON.stringify(body, null, 2)}`)
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getTextApiKey(settings)}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-  await logFetchResponse(onDevLog, res)
-
-  if (!res.ok) throw new Error(await parseError(res))
-
-  const data = (await res.json()) as ChatCompletionResponse
-  const content = data.choices?.[0]?.message?.content?.trim()
+  const content = await chatCompletion(
+    url,
+    { Authorization: `Bearer ${getTextApiKey(settings)}` },
+    body,
+    settings.forceStreaming ?? false,
+    onDevLog,
+  )
   if (!content) throw new Error('反向提示詞優化失敗：模型沒有返回內容')
   return content
 }
@@ -335,10 +388,12 @@ export const optimizePromptPair = async (
 ): Promise<{ prompt: string; negativePrompt: string }> => {
   const model = settings.promptOptimizerModel || settings.textModels?.[0] || 'gpt-4o-mini'
   const url = `${getTextBaseUrl(settings)}/v1/chat/completions`
-  const body = {
+  const useStreaming = settings.forceStreaming ?? false
+  const body: Record<string, unknown> = {
     model,
     temperature: 0.35,
-    response_format: { type: 'json_object' },
+    // response_format json_object is incompatible with streaming on some providers; omit when streaming
+    ...(useStreaming ? {} : { response_format: { type: 'json_object' } }),
     messages: [
       {
         role: 'system',
@@ -360,24 +415,18 @@ export const optimizePromptPair = async (
     ],
   }
 
-  onDevLog?.(`→ REQUEST\nPOST ${url}\nAuthorization: Bearer [redacted]\nContent-Type: application/json\n\n${JSON.stringify(body, null, 2)}`)
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${getTextApiKey(settings)}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  })
-  await logFetchResponse(onDevLog, res)
-
-  if (!res.ok) throw new Error(await parseError(res))
-
-  const data = (await res.json()) as ChatCompletionResponse
-  const content = data.choices?.[0]?.message?.content?.trim()
+  const content = await chatCompletion(
+    url,
+    { Authorization: `Bearer ${getTextApiKey(settings)}` },
+    body,
+    useStreaming,
+    onDevLog,
+  )
   if (!content) throw new Error('提示詞優化失敗：模型沒有返回內容')
 
-  const parsed = JSON.parse(content) as { prompt?: unknown; negative_prompt?: unknown }
+  const jsonMatch = content.match(/\{[\s\S]*\}/)
+  const jsonStr = jsonMatch ? jsonMatch[0] : content
+  const parsed = JSON.parse(jsonStr) as { prompt?: unknown; negative_prompt?: unknown }
   if (typeof parsed.prompt !== 'string') throw new Error('提示詞優化失敗：返回格式無效')
 
   return {
