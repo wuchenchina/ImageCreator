@@ -43,18 +43,26 @@ export default function SettingsDrawer({ open, onClose }: Props) {
   const handleTest = async () => {
     const values = await form.validateFields()
     setTesting(true)
-    addLog('info', `測試 API 連通性 / Testing API connection: ${values.apiBaseUrl}`)
-    const devLogsTest: string[] = []
+    const responseLogs1: string[] = []
 
     try {
-      const onDevLog = (detail: string) => devLogsTest.push(detail)
+      let startLogged = false
+      const onDevLog = (detail: string) => {
+        if (!startLogged && detail.startsWith('→ REQUEST')) {
+          startLogged = true
+          addLog('info', `測試 API 連通性 / Testing API connection: ${values.apiBaseUrl}`, detail)
+        } else {
+          responseLogs1.push(detail)
+        }
+      }
       const result = await testApiConnection(values, onDevLog)
+      if (!startLogged) addLog('info', `測試 API 連通性 / Testing API connection: ${values.apiBaseUrl}`)
       message.success(result)
-      addLog('success', result, devLogsTest.join('\n\n---\n\n'))
+      addLog('success', result, responseLogs1.join('\n\n---\n\n') || undefined)
     } catch (e) {
       const error = e instanceof Error ? e.message : 'API 連線失敗 / API connection failed'
       message.error(error)
-      addLog('error', error, devLogsTest.join('\n\n---\n\n'))
+      addLog('error', error, responseLogs1.join('\n\n---\n\n') || undefined)
     } finally {
       setTesting(false)
     }
@@ -101,19 +109,27 @@ export default function SettingsDrawer({ open, onClose }: Props) {
     const values = await form.validateFields()
     setCheckingQuota(true)
     setQuotaResult(null)
-    addLog('info', `查詢 API Key 額度 / Checking API key quota: ${values.apiBaseUrl}`)
-    const devLogsQuota: string[] = []
+    const responseLogs2: string[] = []
 
     try {
-      const onDevLog = (detail: string) => devLogsQuota.push(detail)
+      let startLogged = false
+      const onDevLog = (detail: string) => {
+        if (!startLogged && detail.startsWith('→ REQUEST')) {
+          startLogged = true
+          addLog('info', `查詢 API Key 額度 / Checking API key quota: ${values.apiBaseUrl}`, detail)
+        } else {
+          responseLogs2.push(detail)
+        }
+      }
       const result = await queryApiQuota(values, onDevLog)
+      if (!startLogged) addLog('info', `查詢 API Key 額度 / Checking API key quota: ${values.apiBaseUrl}`)
       setQuotaResult(result)
       message.success(result.summary)
-      addLog('success', `${result.summary}: ${result.details.join(', ')}`, devLogsQuota.join('\n\n---\n\n'))
+      addLog('success', `${result.summary}: ${result.details.join(', ')}`, responseLogs2.join('\n\n---\n\n') || undefined)
     } catch (e) {
       const error = e instanceof Error ? e.message : '額度查詢失敗 / Quota query failed'
       message.error('額度查詢失敗 / Quota query failed')
-      addLog('error', error, devLogsQuota.join('\n\n---\n\n'))
+      addLog('error', error, responseLogs2.join('\n\n---\n\n') || undefined)
     } finally {
       setCheckingQuota(false)
     }
@@ -122,25 +138,33 @@ export default function SettingsDrawer({ open, onClose }: Props) {
   const handleDetectModels = async () => {
     const values = await form.validateFields(['apiBaseUrl', 'apiKey'])
     setDetectingModels(true)
-    addLog('info', `檢測 API 支援模型 / Detecting supported models: ${values.apiBaseUrl}`)
-    const devLogsDetect: string[] = []
+    const responseLogs3: string[] = []
 
     try {
-      const onDevLog = (detail: string) => devLogsDetect.push(detail)
+      let startLogged = false
+      const onDevLog = (detail: string) => {
+        if (!startLogged && detail.startsWith('→ REQUEST')) {
+          startLogged = true
+          addLog('info', `檢測 API 支援模型 / Detecting supported models: ${values.apiBaseUrl}`, detail)
+        } else {
+          responseLogs3.push(detail)
+        }
+      }
       const imageModels = await detectImageModels({ ...settings, ...values }, onDevLog)
+      if (!startLogged) addLog('info', `檢測 API 支援模型 / Detecting supported models: ${values.apiBaseUrl}`)
       form.setFieldValue('imageModels', imageModels)
       updateSettings({ ...settings, ...form.getFieldsValue(), imageModels })
       if (imageModels.length === 0) {
         message.warning('未檢測到可用圖片模型')
-        addLog('error', '未檢測到可用圖片模型 / No available image models detected', devLogsDetect.join('\n\n---\n\n'))
+        addLog('error', '未檢測到可用圖片模型 / No available image models detected', responseLogs3.join('\n\n---\n\n') || undefined)
       } else {
         message.success(`已檢測到 ${imageModels.length} 個圖片模型`)
-        addLog('success', `模型檢測完成 / Model detection completed: ${imageModels.join(', ')}`, devLogsDetect.join('\n\n---\n\n'))
+        addLog('success', `模型檢測完成 / Model detection completed: ${imageModels.join(', ')}`, responseLogs3.join('\n\n---\n\n') || undefined)
       }
     } catch (e) {
       const error = e instanceof Error ? e.message : '模型檢測失敗 / Model detection failed'
       message.error(error)
-      addLog('error', error, devLogsDetect.join('\n\n---\n\n'))
+      addLog('error', error, responseLogs3.join('\n\n---\n\n') || undefined)
     } finally {
       setDetectingModels(false)
     }
@@ -154,12 +178,21 @@ export default function SettingsDrawer({ open, onClose }: Props) {
     )
     setDetectingTextModels(true)
     const mergedSettings = { ...settings, ...form.getFieldsValue(), ...values }
-    addLog('info', `檢測文字模型 / Detecting text models: ${textApiMode === 'custom' ? mergedSettings.textApiBaseUrl : mergedSettings.apiBaseUrl}`)
-    const devLogsText: string[] = []
+    const responseLogs4: string[] = []
+    const textApiLabel = textApiMode === 'custom' ? mergedSettings.textApiBaseUrl : mergedSettings.apiBaseUrl
 
     try {
-      const onDevLog = (detail: string) => devLogsText.push(detail)
+      let startLogged = false
+      const onDevLog = (detail: string) => {
+        if (!startLogged && detail.startsWith('→ REQUEST')) {
+          startLogged = true
+          addLog('info', `檢測文字模型 / Detecting text models: ${textApiLabel}`, detail)
+        } else {
+          responseLogs4.push(detail)
+        }
+      }
       const textModels = await detectTextModels(mergedSettings, onDevLog)
+      if (!startLogged) addLog('info', `檢測文字模型 / Detecting text models: ${textApiLabel}`)
       form.setFieldsValue({
         textModels,
         promptOptimizerModel: textModels[0] ?? mergedSettings.promptOptimizerModel,
@@ -171,15 +204,15 @@ export default function SettingsDrawer({ open, onClose }: Props) {
       })
       if (textModels.length === 0) {
         message.warning('未檢測到可用文字模型')
-        addLog('error', '未檢測到可用文字模型 / No available text models detected', devLogsText.join('\n\n---\n\n'))
+        addLog('error', '未檢測到可用文字模型 / No available text models detected', responseLogs4.join('\n\n---\n\n') || undefined)
       } else {
         message.success(`已檢測到 ${textModels.length} 個文字模型`)
-        addLog('success', `文字模型檢測完成 / Text model detection completed: ${textModels.join(', ')}`, devLogsText.join('\n\n---\n\n'))
+        addLog('success', `文字模型檢測完成 / Text model detection completed: ${textModels.join(', ')}`, responseLogs4.join('\n\n---\n\n') || undefined)
       }
     } catch (e) {
       const error = e instanceof Error ? e.message : '文字模型檢測失敗 / Text model detection failed'
       message.error(error)
-      addLog('error', error, devLogsText.join('\n\n---\n\n'))
+      addLog('error', error, responseLogs4.join('\n\n---\n\n') || undefined)
     } finally {
       setDetectingTextModels(false)
     }

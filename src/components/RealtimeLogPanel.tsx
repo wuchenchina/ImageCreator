@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button, Card, Collapse, Empty, List, Space, Tag, Typography, Statistic, Row, Col } from 'antd'
 import { ClearOutlined } from '@ant-design/icons'
 import { useAppContext } from '../context/AppContext'
@@ -18,6 +18,14 @@ const levelLabel = {
 export default function RealtimeLogPanel() {
   const { logs, clearLogs, sessionStats } = useAppContext()
   const [expandedKeys, setExpandedKeys] = useState<string[]>([])
+
+  // Auto-expand the newest entry that has detail
+  useEffect(() => {
+    const newest = logs.find((l) => l.detail)
+    if (newest) {
+      setExpandedKeys((prev) => (prev.includes(newest.id) ? prev : [newest.id, ...prev]))
+    }
+  }, [logs])
 
   const hasStats = sessionStats.imagesGenerated > 0
 
