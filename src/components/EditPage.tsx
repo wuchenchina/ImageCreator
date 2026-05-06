@@ -119,6 +119,7 @@ export default function EditPage() {
     setRevisedPrompts([])
     setLastUsage(undefined)
     const startedAt = Date.now()
+    const devLogs: string[] = []
 
     try {
       const rawImages = imageFiles
@@ -126,11 +127,7 @@ export default function EditPage() {
         .filter((f): f is NonNullable<typeof f> => Boolean(f))
 
       const rawMask = maskFile?.originFileObj ?? undefined
-      addLog(
-        'info',
-        `開始編輯 / Start edit: /v1/images/edits, references=${rawImages.length}, mask=${rawMask ? 'yes' : 'no'}, size=${getImageSize(values)}, quality=${values.quality}`,
-      )
-      const onDevLog = (detail: string) => addLog('info', '[Dev] API Log', detail)
+      const onDevLog = (detail: string) => devLogs.push(detail)
 
       const result = await editImages(settings, values, rawImages, rawMask, onDevLog)
       setResults(result.images)
@@ -139,7 +136,11 @@ export default function EditPage() {
       setFormat(values.output_format)
       const duration = Math.round((Date.now() - startedAt) / 1000)
       const usageStr = result.usage?.total_tokens ? `, tokens=${result.usage.total_tokens}` : ''
-      addLog('success', `編輯完成 / Edit completed: ${result.images.length} image(s), ${duration}s${usageStr}`)
+      const detail = [
+        `/v1/images/edits, references=${rawImages.length}, mask=${rawMask ? 'yes' : 'no'}, size=${getImageSize(values)}, quality=${values.quality}`,
+        ...devLogs,
+      ].join('\n\n---\n\n')
+      addLog('success', `編輯完成 / Edit completed: ${result.images.length} image(s), ${duration}s${usageStr}`, detail)
       recordUsage(result.images.length, result.usage?.input_tokens, result.usage?.output_tokens)
 
       const id = `edit-${Date.now()}`
@@ -160,7 +161,7 @@ export default function EditPage() {
       const error = e instanceof Error ? e.message : '編輯失敗，請重試 / Edit failed, please retry'
       setError(error)
       const duration = Math.round((Date.now() - startedAt) / 1000)
-      addLog('error', `編輯失敗 / Edit failed: ${error}, ${duration}s`)
+      addLog('error', `編輯失敗 / Edit failed: ${error}, ${duration}s`, devLogs.join('\n\n---\n\n'))
     } finally {
       setLoading(false)
     }
@@ -174,18 +175,18 @@ export default function EditPage() {
     }
 
     setOptimizingPrompt(true)
-    addLog('info', `開始優化 Prompt / Start prompt optimization: ${settings.promptOptimizerModel ?? settings.textModels?.[0] ?? 'gpt-4o-mini'}`)
+    const devLogsOpt: string[] = []
 
     try {
-      const onDevLog = (detail: string) => addLog('info', '[Dev] API Log', detail)
+      const onDevLog = (detail: string) => devLogsOpt.push(detail)
       const optimized = await optimizePrompt(settings, prompt, form.getFieldValue('negative_prompt'), onDevLog)
       form.setFieldValue('prompt', optimized)
       message.success('Prompt 已優化')
-      addLog('success', 'Prompt 優化完成 / Prompt optimization completed')
+      addLog('success', 'Prompt 優化完成 / Prompt optimization completed', devLogsOpt.join('\n\n---\n\n'))
     } catch (e) {
       const error = e instanceof Error ? e.message : 'Prompt 優化失敗'
       message.error(error)
-      addLog('error', error)
+      addLog('error', error, devLogsOpt.join('\n\n---\n\n'))
     } finally {
       setOptimizingPrompt(false)
     }
@@ -199,18 +200,18 @@ export default function EditPage() {
     }
 
     setOptimizingNegativePrompt(true)
-    addLog('info', `開始優化反向 Prompt / Start negative prompt optimization: ${settings.promptOptimizerModel ?? settings.textModels?.[0] ?? 'gpt-4o-mini'}`)
+    const devLogsNeg: string[] = []
 
     try {
-      const onDevLog = (detail: string) => addLog('info', '[Dev] API Log', detail)
+      const onDevLog = (detail: string) => devLogsNeg.push(detail)
       const optimized = await optimizeNegativePrompt(settings, negativePrompt, form.getFieldValue('prompt'), onDevLog)
       form.setFieldValue('negative_prompt', optimized)
       message.success('反向 Prompt 已優化')
-      addLog('success', '反向 Prompt 優化完成 / Negative prompt optimization completed')
+      addLog('success', '反向 Prompt 優化完成 / Negative prompt optimization completed', devLogsNeg.join('\n\n---\n\n'))
     } catch (e) {
       const error = e instanceof Error ? e.message : '反向 Prompt 優化失敗'
       message.error(error)
-      addLog('error', error)
+      addLog('error', error, devLogsNeg.join('\n\n---\n\n'))
     } finally {
       setOptimizingNegativePrompt(false)
     }
@@ -224,21 +225,21 @@ export default function EditPage() {
     }
 
     setOptimizingPromptPair(true)
-    addLog('info', `開始同時優化提示詞 / Start prompt pair optimization: ${settings.promptOptimizerModel ?? settings.textModels?.[0] ?? 'gpt-4o-mini'}`)
+    const devLogsPair: string[] = []
 
     try {
-      const onDevLog = (detail: string) => addLog('info', '[Dev] API Log', detail)
+      const onDevLog = (detail: string) => devLogsPair.push(detail)
       const optimized = await optimizePromptPair(settings, prompt, form.getFieldValue('negative_prompt'), onDevLog)
       form.setFieldsValue({
         prompt: optimized.prompt,
         negative_prompt: optimized.negativePrompt,
       })
       message.success('提示詞已同時優化')
-      addLog('success', '提示詞與反向提示詞優化完成 / Prompt pair optimization completed')
+      addLog('success', '提示詞與反向提示詞優化完成 / Prompt pair optimization completed', devLogsPair.join('\n\n---\n\n'))
     } catch (e) {
       const error = e instanceof Error ? e.message : '提示詞優化失敗'
       message.error(error)
-      addLog('error', error)
+      addLog('error', error, devLogsPair.join('\n\n---\n\n'))
     } finally {
       setOptimizingPromptPair(false)
     }
@@ -255,6 +256,7 @@ export default function EditPage() {
     setRevising(true)
     setError(null)
     const startedAt = Date.now()
+    const devLogs: string[] = []
 
     try {
       const values = await form.validateFields()
@@ -264,9 +266,7 @@ export default function EditPage() {
         '根據參考圖片進行修改，保持整體風格與主要內容一致。',
         `修改要求：${revision}`,
       ].join('\n\n')
-      const onDevLog = (detail: string) => addLog('info', '[Dev] API Log', detail)
-
-      addLog('info', `開始根據結果修改 / Start result revision: references=${imageBlobs.length}`)
+      const onDevLog = (detail: string) => devLogs.push(detail)
       const result = await editImages(settings, { ...values, prompt }, imageBlobs, undefined, onDevLog)
       setResults(result.images)
       setRevisedPrompts(result.revisedPrompts)
@@ -275,12 +275,13 @@ export default function EditPage() {
       setRevisionPrompt('')
       const duration = Math.round((Date.now() - startedAt) / 1000)
       const usageStr = result.usage?.total_tokens ? `, tokens=${result.usage.total_tokens}` : ''
-      addLog('success', `修改完成 / Revision completed: ${result.images.length} image(s), ${duration}s${usageStr}`)
+      const detail = [`references=${imageBlobs.length}`, ...devLogs].join('\n\n---\n\n')
+      addLog('success', `修改完成 / Revision completed: ${result.images.length} image(s), ${duration}s${usageStr}`, detail)
       recordUsage(result.images.length, result.usage?.input_tokens, result.usage?.output_tokens)
     } catch (e) {
       const error = e instanceof Error ? e.message : '修改失敗，請重試 / Revision failed, please retry'
       setError(error)
-      addLog('error', `修改失敗 / Revision failed: ${error}`)
+      addLog('error', `修改失敗 / Revision failed: ${error}`, devLogs.join('\n\n---\n\n'))
     } finally {
       setRevising(false)
     }

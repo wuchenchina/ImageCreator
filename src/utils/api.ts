@@ -39,18 +39,6 @@ interface ChatCompletionResponse {
   }>
 }
 
-const truncateB64 = (obj: unknown, maxLen = 60): unknown => {
-  if (typeof obj === 'string') {
-    return obj.length > maxLen ? `${obj.slice(0, maxLen)}…[${obj.length} chars]` : obj
-  }
-  if (Array.isArray(obj)) return obj.map((v) => truncateB64(v, maxLen))
-  if (obj && typeof obj === 'object') {
-    return Object.fromEntries(
-      Object.entries(obj as Record<string, unknown>).map(([k, v]) => [k, truncateB64(v, maxLen)]),
-    )
-  }
-  return obj
-}
 
 export interface QuotaResult {
   source: string
@@ -83,7 +71,7 @@ const logFetchResponse = async (onDevLog: DevLogFn | undefined, res: Response, l
 
   try {
     const json = await res.clone().json()
-    onDevLog(`← RESPONSE ${label}${label ? ' ' : ''}${res.status} ${res.statusText}\n\n${JSON.stringify(truncateB64(json), null, 2)}`)
+    onDevLog(`← RESPONSE ${label}${label ? ' ' : ''}${res.status} ${res.statusText}\n\n${JSON.stringify(json, null, 2)}`)
   } catch {
     const text = await res.clone().text().catch(() => '')
     onDevLog(`← RESPONSE ${label}${label ? ' ' : ''}${res.status} ${res.statusText}\n\n${text}`)
@@ -134,7 +122,7 @@ export const generateImages = async (
   }
 
   const data = (await res.json()) as ImageResponse
-  onDevLog?.(`← RESPONSE ${res.status} ${res.statusText}\n\n${JSON.stringify(truncateB64(data), null, 2)}`)
+  onDevLog?.(`← RESPONSE ${res.status} ${res.statusText}\n\n${JSON.stringify(data, null, 2)}`)
 
   const mime = params.output_format === 'jpeg' ? 'image/jpeg' : `image/${params.output_format}`
   return {
@@ -619,7 +607,7 @@ export const editImages = async (
   }
 
   const data = (await res.json()) as ImageResponse
-  onDevLog?.(`← RESPONSE ${res.status} ${res.statusText}\n\n${JSON.stringify(truncateB64(data), null, 2)}`)
+  onDevLog?.(`← RESPONSE ${res.status} ${res.statusText}\n\n${JSON.stringify(data, null, 2)}`)
 
   const mime = params.output_format === 'jpeg' ? 'image/jpeg' : `image/${params.output_format}`
   return {
