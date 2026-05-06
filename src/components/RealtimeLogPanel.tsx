@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button, Card, Collapse, Empty, List, Space, Tag, Typography, Statistic, Row, Col } from 'antd'
 import { ClearOutlined } from '@ant-design/icons'
 import { useAppContext } from '../context/AppContext'
@@ -19,8 +19,13 @@ export default function RealtimeLogPanel() {
   const { logs, clearLogs, sessionStats } = useAppContext()
   const [expandedKeys, setExpandedKeys] = useState<string[]>([])
 
-  // Auto-expand the newest entry that has detail
+  const prevLogsLen = useRef(0)
   useEffect(() => {
+    if (logs.length <= prevLogsLen.current) {
+      prevLogsLen.current = logs.length
+      return
+    }
+    prevLogsLen.current = logs.length
     const newest = logs.find((l) => l.detail)
     if (newest) {
       setExpandedKeys((prev) => (prev.includes(newest.id) ? prev : [newest.id, ...prev]))
@@ -85,9 +90,13 @@ export default function RealtimeLogPanel() {
                   ghost
                   size="small"
                   activeKey={expandedKeys.includes(item.id) ? [item.id] : []}
-                  onChange={(keys) =>
-                    setExpandedKeys(Array.isArray(keys) ? keys.map(String) : [String(keys)])
-                  }
+                  onChange={(keys) => {
+                    const active = Array.isArray(keys) ? keys.map(String) : [String(keys)]
+                    setExpandedKeys((prev) => {
+                      const without = prev.filter((k) => k !== item.id)
+                      return active.length > 0 ? [...without, item.id] : without
+                    })
+                  }}
                   style={{ width: '100%', marginTop: 4 }}
                   items={[
                     {
